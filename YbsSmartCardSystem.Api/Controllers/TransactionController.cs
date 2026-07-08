@@ -21,4 +21,11 @@ public class TransactionController : BaseController
         var result = _transactionService.GetList(request);
         return Execute(result);
     }
+
+    [HttpGet("{transactionId:int}")]
+    public IActionResult TransactionDetail([FromRoute] TransactionDetailRequestModel request)
+    {
+        var result = _transactionService.GetById(request);
+        return Execute(result);
+    }
 }

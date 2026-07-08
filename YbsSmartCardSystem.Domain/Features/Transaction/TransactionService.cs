@@ -72,6 +72,74 @@ public class TransactionService
         }
     }
 
+    public Result<TransactionDetailResponseModel> GetById(TransactionDetailRequestModel request)
+    {
+        try
+        {
+            var transaction = _db.TblTransactions
+                .AsNoTracking()
+                .Include(x => x.Card)
+                .FirstOrDefault(x =>
+                    x.TransactionId == request.TransactionId &&
+                    x.IsDelete == false &&
+                    x.Card.IsDelete == false);
+
+            if (transaction is null)
+            {
+                return new Result<TransactionDetailResponseModel>
+                {
+                    IsSuccess = false,
+                    Message = "Transaction not found."
+                };
+            }
+
+            var transactions = _db.TblTransactions
+                .AsNoTracking()
+                .Where(x => x.CardId == transaction.CardId && x.IsDelete == false)
+                .OrderBy(x => x.CreatedDateTime)
+                .ThenBy(x => x.TransactionId)
+                .ToList();
+
+            decimal balanceAfterTransaction = 0;
+            foreach (var item in transactions)
+            {
+                balanceAfterTransaction += item.Amount;
+                if (item.TransactionId == transaction.TransactionId)
+                {
+                    break;
+                }
+            }
+
+            return new Result<TransactionDetailResponseModel>
+            {
+                IsSuccess = true,
+                Message = "Transaction retrieved successfully.",
+                Data = new TransactionDetailResponseModel
+                {
+                    Transaction = new TransactionDetailModel
+                    {
+                        TransactionId = transaction.TransactionId,
+                        TransactionNo = transaction.TransactionNo,
+                        Date = transaction.CreatedDateTime,
+                        Amount = transaction.Amount,
+                        BalanceAfterTransaction = balanceAfterTransaction,
+                        CardNo = transaction.Card.CardNo,
+                        FullName = transaction.Card.FullName,
+                        MobileNo = transaction.Card.MobileNo
+                    }
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            return new Result<TransactionDetailResponseModel>
+            {
+                IsSuccess = false,
+                Message = ex.ToString()
+            };
+        }
+    }
+
     private static Result<TransactionListResponseModel> Fail(string message)
     {
         return new Result<TransactionListResponseModel>
