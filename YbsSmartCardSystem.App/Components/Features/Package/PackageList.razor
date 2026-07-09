@@ -1,0 +1,213 @@
+@page "/packages"
+@inject ApiService ApiService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Packages</PageTitle>
+
+<h1>Packages</h1>
+
+@if (!string.IsNullOrWhiteSpace(message))
+{
+    <div class="alert @(isSuccessMessage ? "alert-success" : "alert-danger")">@message</div>
+}
+
+<div class="tool-grid">
+    <section class="tool-panel">
+        <h2>@(editPackageId is null ? "New Package" : "Edit Package")</h2>
+        <div class="form-grid">
+            <label>
+                Package Name
+                <input class="form-control" @bind="packageForm.PackageName" />
+            </label>
+            <label>
+                Amount
+                <input class="form-control" type="number" step="0.01" min="0" @bind="packageForm.Amount" />
+            </label>
+        </div>
+        <div class="button-row mt-3">
+            <button class="btn btn-success" @onclick="SavePackage" disabled="@isBusy">Save</button>
+            @if (editPackageId is not null)
+            {
+                <button class="btn btn-outline-secondary" @onclick="ClearForm" disabled="@isBusy">Cancel</button>
+            }
+        </div>
+    </section>
+
+    @if (selectedPackage?.Data is not null)
+    {
+        <section class="tool-panel">
+            <h2>Package Detail</h2>
+            <dl class="detail-grid">
+                <dt>Name</dt>
+                <dd>@selectedPackage.Data.PackageName</dd>
+                <dt>Amount</dt>
+                <dd>@selectedPackage.Data.Amount.ToString("N2")</dd>
+            </dl>
+        </section>
+    }
+</div>
+
+<section class="tool-panel">
+    <h2>Package List</h2>
+    @if (packages is null)
+    {
+        <p>Loading...</p>
+    }
+    else if (!packages.IsSuccess)
+    {
+        <div class="alert alert-danger">@packages.Message</div>
+    }
+    else if (packages.Data?.Packages.Count > 0)
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th class="text-end">Amount</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var package in packages.Data.Packages)
+                    {
+                        <tr>
+                            <td>@package.PackageName</td>
+                            <td class="text-end">@package.Amount.ToString("N2")</td>
+                            <td class="table-actions">
+                                <button class="btn btn-outline-secondary btn-sm" @onclick="() => LoadPackage(package.PackageId)">View</button>
+                                <button class="btn btn-outline-primary btn-sm" @onclick="() => EditPackage(package)">Edit</button>
+                                <button class="btn btn-outline-danger btn-sm" @onclick="() => DeletePackage(package.PackageId)">Delete</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <p>No packages found.</p>
+    }
+</section>
+
+@code {
+    private PackageCreateRequestModel packageForm = new();
+    private Result<PackageListResponseModel>? packages;
+    private Result<PackageDetailResponseModel>? selectedPackage;
+    private int? editPackageId;
+    private string? message;
+    private bool isBusy;
+    private bool isSuccessMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPackages();
+    }
+
+    private async Task LoadPackages()
+    {
+        await Run(async () =>
+        {
+            packages = await ApiService.GetPackages();
+            SetMessage(packages.Message, packages.IsSuccess);
+        });
+    }
+
+    private async Task LoadPackage(int packageId)
+    {
+        await Run(async () =>
+        {
+            selectedPackage = await ApiService.GetPackage(packageId);
+            SetMessage(selectedPackage.Message, selectedPackage.IsSuccess);
+        });
+    }
+
+    private void EditPackage(PackageListItemResponseModel package)
+    {
+        editPackageId = package.PackageId;
+        packageForm = new PackageCreateRequestModel
+        {
+            PackageName = package.PackageName,
+            Amount = package.Amount
+        };
+    }
+
+    private async Task SavePackage()
+    {
+        await Run(async () =>
+        {
+            if (editPackageId is null)
+            {
+                var result = await ApiService.CreatePackage(packageForm);
+                SetMessage(result.Message, result.IsSuccess);
+                if (result.IsSuccess)
+                {
+                    ClearForm();
+                    packages = await ApiService.GetPackages();
+                }
+            }
+            else
+            {
+                var result = await ApiService.UpdatePackage(editPackageId.Value, new PackageUpdateRequestModel
+                {
+                    PackageName = packageForm.PackageName,
+                    Amount = packageForm.Amount
+                });
+
+                SetMessage(result.Message, result.IsSuccess);
+                if (result.IsSuccess)
+                {
+                    ClearForm();
+                    packages = await ApiService.GetPackages();
+                }
+            }
+        });
+    }
+
+    private async Task DeletePackage(int packageId)
+    {
+        bool shouldDelete = await JSRuntime.InvokeAsync<bool>("confirm", "Delete this package?");
+        if (!shouldDelete)
+        {
+            return;
+        }
+
+        await Run(async () =>
+        {
+            var result = await ApiService.DeletePackage(packageId);
+            SetMessage(result.Message, result.IsSuccess);
+            if (result.IsSuccess)
+            {
+                ClearForm();
+                selectedPackage = null;
+                packages = await ApiService.GetPackages();
+            }
+        });
+    }
+
+    private void ClearForm()
+    {
+        editPackageId = null;
+        packageForm = new PackageCreateRequestModel();
+    }
+
+    private async Task Run(Func<Task> action)
+    {
+        isBusy = true;
+        try
+        {
+            await action();
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void SetMessage(string value, bool isSuccess)
+    {
+        message = value;
+        isSuccessMessage = isSuccess;
+    }
+}

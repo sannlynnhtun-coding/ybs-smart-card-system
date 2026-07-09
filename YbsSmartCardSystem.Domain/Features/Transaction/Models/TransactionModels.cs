@@ -7,7 +7,7 @@ public class TransactionListRequestModel
 
 public class TransactionListResponseModel
 {
-    public List<TransactionModel> Transactions { get; set; } = new List<TransactionModel>();
+    public List<TransactionListItemResponseModel> Transactions { get; set; } = new List<TransactionListItemResponseModel>();
 }
 
 public class TransactionDetailRequestModel
@@ -17,11 +17,13 @@ public class TransactionDetailRequestModel
 
 public class TransactionDetailResponseModel
 {
-    public TransactionDetailModel Transaction { get; set; } = new TransactionDetailModel();
+    public TransactionDetailItemResponseModel Transaction { get; set; } = new TransactionDetailItemResponseModel();
 }
 
-public class TransactionModel
+public class TransactionListItemResponseModel
 {
+    public int TransactionId { get; set; }
+
     public string TransactionNo { get; set; } = string.Empty;
 
     public DateTime Date { get; set; }
@@ -31,7 +33,7 @@ public class TransactionModel
     public decimal BalanceAfterTransaction { get; set; }
 }
 
-public class TransactionDetailModel
+public class TransactionDetailItemResponseModel
 {
     public int TransactionId { get; set; }
 

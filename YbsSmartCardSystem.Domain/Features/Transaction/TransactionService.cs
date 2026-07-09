@@ -43,8 +43,9 @@ public class TransactionService
             var items = transactions.Select(x =>
             {
                 balance += x.Amount;
-                return new TransactionModel
+                return new TransactionListItemResponseModel
                 {
+                    TransactionId = x.TransactionId,
                     TransactionNo = x.TransactionNo,
                     Date = x.CreatedDateTime,
                     Amount = x.Amount,
@@ -116,7 +117,7 @@ public class TransactionService
                 Message = "Transaction retrieved successfully.",
                 Data = new TransactionDetailResponseModel
                 {
-                    Transaction = new TransactionDetailModel
+                    Transaction = new TransactionDetailItemResponseModel
                     {
                         TransactionId = transaction.TransactionId,
                         TransactionNo = transaction.TransactionNo,

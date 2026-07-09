@@ -13,7 +13,7 @@ public class PackageService
         _db = db;
     }
 
-    public Result<PackageListResponseModel> GetList()
+    public Result<PackageListResponseModel> GetList(PackageListRequestModel request)
     {
         try
         {
@@ -21,7 +21,7 @@ public class PackageService
                 .AsNoTracking()
                 .Where(x => x.IsDelete == false)
                 .OrderByDescending(x => x.PackageId)
-                .Select(x => new PackageModel
+                .Select(x => new PackageListItemResponseModel
                 {
                     PackageId = x.PackageId,
                     PackageName = x.PackageName,
@@ -49,19 +49,56 @@ public class PackageService
         }
     }
 
-    public Result<PackageModel> Create(PackageRequestModel request)
+    public Result<PackageDetailResponseModel> GetById(PackageDetailRequestModel request)
+    {
+        try
+        {
+            var package = _db.TblPackages
+                .AsNoTracking()
+                .Where(x => x.PackageId == request.PackageId && x.IsDelete == false)
+                .Select(x => new PackageDetailResponseModel
+                {
+                    PackageId = x.PackageId,
+                    PackageName = x.PackageName,
+                    Amount = x.Amount
+                })
+                .FirstOrDefault();
+
+            if (package is null)
+            {
+                return Fail<PackageDetailResponseModel>("Package not found.");
+            }
+
+            return new Result<PackageDetailResponseModel>
+            {
+                IsSuccess = true,
+                Message = "Package retrieved successfully.",
+                Data = package
+            };
+        }
+        catch (Exception ex)
+        {
+            return new Result<PackageDetailResponseModel>
+            {
+                IsSuccess = false,
+                Message = ex.ToString()
+            };
+        }
+    }
+
+    public Result<PackageCreateResponseModel> Create(PackageCreateRequestModel request)
     {
         try
         {
             string packageName = request.PackageName.Trim();
             if (string.IsNullOrWhiteSpace(packageName))
             {
-                return Fail("Package Name is required.");
+                return Fail<PackageCreateResponseModel>("Package Name is required.");
             }
 
             if (request.Amount <= 0)
             {
-                return Fail("Amount must be greater than 0.");
+                return Fail<PackageCreateResponseModel>("Amount must be greater than 0.");
             }
 
             var package = new TblPackage
@@ -75,16 +112,21 @@ public class PackageService
             _db.TblPackages.Add(package);
             _db.SaveChanges();
 
-            return new Result<PackageModel>
+            return new Result<PackageCreateResponseModel>
             {
                 IsSuccess = true,
                 Message = "Package created successfully.",
-                Data = ToModel(package)
+                Data = new PackageCreateResponseModel
+                {
+                    PackageId = package.PackageId,
+                    PackageName = package.PackageName,
+                    Amount = package.Amount
+                }
             };
         }
         catch (Exception ex)
         {
-            return new Result<PackageModel>
+            return new Result<PackageCreateResponseModel>
             {
                 IsSuccess = false,
                 Message = ex.ToString()
@@ -92,25 +134,25 @@ public class PackageService
         }
     }
 
-    public Result<PackageModel> Update(int packageId, PackageRequestModel request)
+    public Result<PackageUpdateResponseModel> Update(int packageId, PackageUpdateRequestModel request)
     {
         try
         {
             string packageName = request.PackageName.Trim();
             if (string.IsNullOrWhiteSpace(packageName))
             {
-                return Fail("Package Name is required.");
+                return Fail<PackageUpdateResponseModel>("Package Name is required.");
             }
 
             if (request.Amount <= 0)
             {
-                return Fail("Amount must be greater than 0.");
+                return Fail<PackageUpdateResponseModel>("Amount must be greater than 0.");
             }
 
             var package = _db.TblPackages.FirstOrDefault(x => x.PackageId == packageId && x.IsDelete == false);
             if (package is null)
             {
-                return Fail("Package not found.");
+                return Fail<PackageUpdateResponseModel>("Package not found.");
             }
 
             package.PackageName = packageName;
@@ -119,16 +161,21 @@ public class PackageService
 
             _db.SaveChanges();
 
-            return new Result<PackageModel>
+            return new Result<PackageUpdateResponseModel>
             {
                 IsSuccess = true,
                 Message = "Package updated successfully.",
-                Data = ToModel(package)
+                Data = new PackageUpdateResponseModel
+                {
+                    PackageId = package.PackageId,
+                    PackageName = package.PackageName,
+                    Amount = package.Amount
+                }
             };
         }
         catch (Exception ex)
         {
-            return new Result<PackageModel>
+            return new Result<PackageUpdateResponseModel>
             {
                 IsSuccess = false,
                 Message = ex.ToString()
@@ -136,19 +183,46 @@ public class PackageService
         }
     }
 
-    private static PackageModel ToModel(TblPackage package)
+    public Result<PackageDeleteResponseModel> Delete(PackageDeleteRequestModel request)
     {
-        return new PackageModel
+        try
         {
-            PackageId = package.PackageId,
-            PackageName = package.PackageName,
-            Amount = package.Amount
-        };
+            var package = _db.TblPackages.FirstOrDefault(x => x.PackageId == request.PackageId && x.IsDelete == false);
+            if (package is null)
+            {
+                return Fail<PackageDeleteResponseModel>("Package not found.");
+            }
+
+            package.IsDelete = true;
+            package.ModifiedDateTime = DateTime.Now;
+
+            _db.SaveChanges();
+
+            return new Result<PackageDeleteResponseModel>
+            {
+                IsSuccess = true,
+                Message = "Package deleted successfully.",
+                Data = new PackageDeleteResponseModel
+                {
+                    PackageId = package.PackageId,
+                    PackageName = package.PackageName,
+                    Amount = package.Amount
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            return new Result<PackageDeleteResponseModel>
+            {
+                IsSuccess = false,
+                Message = ex.ToString()
+            };
+        }
     }
 
-    private static Result<PackageModel> Fail(string message)
+    private static Result<T> Fail<T>(string message)
     {
-        return new Result<PackageModel>
+        return new Result<T>
         {
             IsSuccess = false,
             Message = message

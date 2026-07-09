@@ -54,7 +54,7 @@ public class CardService
                 Message = "Cards retrieved successfully.",
                 Data = new CardListResponseModel
                 {
-                    Cards = cards.Select(c => new CardModel
+                    Cards = cards.Select(c => new CardListItemResponseModel
                     {
                         CardId = c.CardId,
                         CardNo = c.CardNo,
@@ -75,14 +75,14 @@ public class CardService
         }
     }
 
-    public Result<CardModel> GetById(int cardId)
+    public Result<CardDetailResponseModel> GetById(CardDetailRequestModel request)
     {
         try
         {
             var card = _db.TblCards
                 .AsNoTracking()
-                .Where(x => x.CardId == cardId && x.IsDelete == false)
-                .Select(x => new CardModel
+                .Where(x => x.CardId == request.CardId && x.IsDelete == false)
+                .Select(x => new CardDetailResponseModel
                 {
                     CardId = x.CardId,
                     CardNo = x.CardNo,
@@ -94,10 +94,10 @@ public class CardService
 
             if (card is null)
             {
-                return Fail("Card not found.");
+                return CardDetailFail("Card not found.");
             }
 
-            return new Result<CardModel>
+            return new Result<CardDetailResponseModel>
             {
                 IsSuccess = true,
                 Message = "Card retrieved successfully.",
@@ -106,7 +106,7 @@ public class CardService
         }
         catch (Exception ex)
         {
-            return new Result<CardModel>
+            return new Result<CardDetailResponseModel>
             {
                 IsSuccess = false,
                 Message = ex.ToString()
@@ -114,7 +114,7 @@ public class CardService
         }
     }
 
-    public Result<CardModel> Create(CardCreateRequestModel request)
+    public Result<CardCreateResponseModel> Create(CardCreateRequestModel request)
     {
         try
         {
@@ -124,22 +124,22 @@ public class CardService
 
             if (string.IsNullOrWhiteSpace(cardNo))
             {
-                return Fail("Card No is required.");
+                return CardCreateFail("Card No is required.");
             }
 
             if (string.IsNullOrWhiteSpace(fullName))
             {
-                return Fail("Full Name is required.");
+                return CardCreateFail("Full Name is required.");
             }
 
             if (string.IsNullOrWhiteSpace(mobileNo))
             {
-                return Fail("Mobile Number is required.");
+                return CardCreateFail("Mobile Number is required.");
             }
 
             if (_db.TblCards.Any(x => x.CardNo == cardNo))
             {
-                return Fail("Card No already exists.");
+                return CardCreateFail("Card No already exists.");
             }
 
             var card = new TblCard
@@ -155,23 +155,22 @@ public class CardService
             _db.TblCards.Add(card);
             _db.SaveChanges();
 
-            return new Result<CardModel>
+            return new Result<CardCreateResponseModel>
             {
                 IsSuccess = true,
                 Message = "Card created successfully.",
-                Data = new CardModel
+                Data = new CardCreateResponseModel
                 {
                     CardId = card.CardId,
                     CardNo = card.CardNo,
                     FullName = card.FullName,
                     MobileNo = card.MobileNo,
-                    Balance = card.Balance
                 }
             };
         }
         catch (Exception ex)
         {
-            return new Result<CardModel>
+            return new Result<CardCreateResponseModel>
             {
                 IsSuccess = false,
                 Message = ex.ToString()
@@ -179,9 +178,18 @@ public class CardService
         }
     }
 
-    private static Result<CardModel> Fail(string message)
+    private static Result<CardDetailResponseModel> CardDetailFail(string message)
     {
-        return new Result<CardModel>
+        return new Result<CardDetailResponseModel>
+        {
+            IsSuccess = false,
+            Message = message
+        };
+    }
+
+    private static Result<CardCreateResponseModel> CardCreateFail(string message)
+    {
+        return new Result<CardCreateResponseModel>
         {
             IsSuccess = false,
             Message = message

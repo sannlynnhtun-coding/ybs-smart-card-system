@@ -1,0 +1,188 @@
+@page "/cards"
+@inject ApiService ApiService
+
+<PageTitle>Cards</PageTitle>
+
+<h1>Cards</h1>
+
+@if (!string.IsNullOrWhiteSpace(message))
+{
+    <div class="alert @(isSuccessMessage ? "alert-success" : "alert-danger")">@message</div>
+}
+
+<div class="tool-grid">
+    <section class="tool-panel">
+        <h2>Search</h2>
+        <div class="form-grid">
+            <label>
+                Card No
+                <input class="form-control" @bind="search.CardNo" />
+            </label>
+            <label>
+                Mobile No
+                <input class="form-control" @bind="search.MobileNo" />
+            </label>
+            <label>
+                Name
+                <input class="form-control" @bind="search.Name" />
+            </label>
+            <label>
+                Page Size
+                <input class="form-control" type="number" min="1" @bind="search.PageSize" />
+            </label>
+        </div>
+        <button class="btn btn-primary mt-3" @onclick="LoadCards" disabled="@isBusy">Search</button>
+    </section>
+
+    <section class="tool-panel">
+        <h2>New Card</h2>
+        <div class="form-grid">
+            <label>
+                Card No
+                <input class="form-control" @bind="newCard.CardNo" />
+            </label>
+            <label>
+                Full Name
+                <input class="form-control" @bind="newCard.FullName" />
+            </label>
+            <label>
+                Mobile No
+                <input class="form-control" @bind="newCard.MobileNo" />
+            </label>
+        </div>
+        <button class="btn btn-success mt-3" @onclick="CreateCard" disabled="@isBusy">Save</button>
+    </section>
+</div>
+
+@if (selectedCard?.Data is not null)
+{
+    <section class="tool-panel">
+        <h2>Card Detail</h2>
+        <dl class="detail-grid">
+            <dt>Card No</dt>
+            <dd>@selectedCard.Data.CardNo</dd>
+            <dt>Full Name</dt>
+            <dd>@selectedCard.Data.FullName</dd>
+            <dt>Mobile No</dt>
+            <dd>@selectedCard.Data.MobileNo</dd>
+            <dt>Balance</dt>
+            <dd>@selectedCard.Data.Balance.ToString("N2")</dd>
+        </dl>
+    </section>
+}
+
+<section class="tool-panel">
+    <h2>Card List</h2>
+    @if (cards is null)
+    {
+        <p>Loading...</p>
+    }
+    else if (!cards.IsSuccess)
+    {
+        <div class="alert alert-danger">@cards.Message</div>
+    }
+    else if (cards.Data?.Cards.Count > 0)
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Card No</th>
+                        <th>Full Name</th>
+                        <th>Mobile No</th>
+                        <th class="text-end">Balance</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var card in cards.Data.Cards)
+                    {
+                        <tr>
+                            <td>@card.CardNo</td>
+                            <td>@card.FullName</td>
+                            <td>@card.MobileNo</td>
+                            <td class="text-end">@card.Balance.ToString("N2")</td>
+                            <td class="table-actions">
+                                <button class="btn btn-outline-secondary btn-sm" @onclick="() => LoadCard(card.CardId)">View</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <p>No cards found.</p>
+    }
+</section>
+
+@code {
+    private readonly CardListRequestModel search = new() { PageNo = 1, PageSize = 10 };
+    private readonly CardCreateRequestModel newCard = new();
+    private Result<CardListResponseModel>? cards;
+    private Result<CardDetailResponseModel>? selectedCard;
+    private string? message;
+    private bool isBusy;
+    private bool isSuccessMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCards();
+    }
+
+    private async Task LoadCards()
+    {
+        await Run(async () =>
+        {
+            search.PageNo = 1;
+            cards = await ApiService.GetCards(search);
+            selectedCard = null;
+            SetMessage(cards.Message, cards.IsSuccess);
+        });
+    }
+
+    private async Task LoadCard(int cardId)
+    {
+        await Run(async () =>
+        {
+            selectedCard = await ApiService.GetCard(cardId);
+            SetMessage(selectedCard.Message, selectedCard.IsSuccess);
+        });
+    }
+
+    private async Task CreateCard()
+    {
+        await Run(async () =>
+        {
+            var result = await ApiService.CardCreate(newCard);
+            SetMessage(result.Message, result.IsSuccess);
+            if (result.IsSuccess)
+            {
+                newCard.CardNo = string.Empty;
+                newCard.FullName = string.Empty;
+                newCard.MobileNo = string.Empty;
+                await LoadCards();
+            }
+        });
+    }
+
+    private async Task Run(Func<Task> action)
+    {
+        isBusy = true;
+        try
+        {
+            await action();
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void SetMessage(string value, bool isSuccess)
+    {
+        message = value;
+        isSuccessMessage = isSuccess;
+    }
+}

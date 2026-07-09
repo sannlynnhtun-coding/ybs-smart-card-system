@@ -1,0 +1,70 @@
+@page "/bus-tap"
+@inject ApiService ApiService
+
+<PageTitle>Bus Tap</PageTitle>
+
+<h1>Bus Tap</h1>
+
+@if (!string.IsNullOrWhiteSpace(message))
+{
+    <div class="alert @(isSuccessMessage ? "alert-success" : "alert-danger")">@message</div>
+}
+
+<section class="tool-panel">
+    <div class="form-grid">
+        <label>
+            Card No
+            <input class="form-control" @bind="request.CardNo" />
+        </label>
+    </div>
+    <button class="btn btn-success mt-3" @onclick="Tap" disabled="@isBusy">Tap</button>
+</section>
+
+@if (tap?.Data is not null)
+{
+    <section class="tool-panel">
+        <h2>Tap Result</h2>
+        <dl class="detail-grid">
+            <dt>Card No</dt>
+            <dd>@tap.Data.CardNo</dd>
+            <dt>Fare</dt>
+            <dd>@tap.Data.FareAmount.ToString("N2")</dd>
+            <dt>New Balance</dt>
+            <dd>@tap.Data.NewBalance.ToString("N2")</dd>
+            <dt>Status</dt>
+            <dd>@(tap.Data.IsAllowed ? "Allowed" : "Denied")</dd>
+        </dl>
+    </section>
+}
+
+@code {
+    private readonly BusTapRequestModel request = new();
+    private Result<BusTapResponseModel>? tap;
+    private string? message;
+    private bool isBusy;
+    private bool isSuccessMessage;
+
+    private async Task Tap()
+    {
+        isBusy = true;
+        try
+        {
+            tap = await ApiService.BusTap(request);
+            SetMessage(tap.Message, tap.IsSuccess);
+            if (tap.IsSuccess)
+            {
+                request.CardNo = string.Empty;
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void SetMessage(string value, bool isSuccess)
+    {
+        message = value;
+        isSuccessMessage = isSuccess;
+    }
+}

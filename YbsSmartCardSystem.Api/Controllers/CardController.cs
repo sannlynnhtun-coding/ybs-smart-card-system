@@ -23,9 +23,9 @@ namespace YbsSmartCardSystem.Api.Controllers
         }
 
         [HttpGet("{cardId}")]
-        public IActionResult CardDetail(int cardId)
+        public IActionResult CardDetail([FromRoute] CardDetailRequestModel request)
         {
-            var result = _cardService.GetById(cardId);
+            var result = _cardService.GetById(request);
             return Execute(result);
         }
 

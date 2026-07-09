@@ -3,6 +3,7 @@
     <File Path="README.md" />
   </Folder>
   <Project Path="YbsSmartCardSystem.Api/YbsSmartCardSystem.Api.csproj" />
+  <Project Path="YbsSmartCardSystem.App/YbsSmartCardSystem.App.csproj" Id="4b782e7d-25f5-4be5-8155-89adc632b363" />
   <Project Path="YbsSmartCardSystem.Database/YbsSmartCardSystem.Database.csproj" />
   <Project Path="YbsSmartCardSystem.Domain/YbsSmartCardSystem.Domain.csproj" />
 </Solution>

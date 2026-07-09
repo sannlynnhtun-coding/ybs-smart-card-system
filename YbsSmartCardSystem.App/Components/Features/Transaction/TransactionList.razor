@@ -1,0 +1,137 @@
+@page "/transactions"
+@inject ApiService ApiService
+
+<PageTitle>Transactions</PageTitle>
+
+<h1>Transactions</h1>
+
+@if (!string.IsNullOrWhiteSpace(message))
+{
+    <div class="alert @(isSuccessMessage ? "alert-success" : "alert-danger")">@message</div>
+}
+
+<section class="tool-panel">
+    <div class="form-grid">
+        <label>
+            Card No
+            <input class="form-control" @bind="search.CardNo" />
+        </label>
+    </div>
+    <button class="btn btn-primary mt-3" @onclick="LoadTransactions" disabled="@isBusy">Search</button>
+</section>
+
+@if (detail?.Data?.Transaction is not null)
+{
+    <section class="tool-panel">
+        <h2>Transaction Detail</h2>
+        <dl class="detail-grid">
+            <dt>Transaction No</dt>
+            <dd>@detail.Data.Transaction.TransactionNo</dd>
+            <dt>Date</dt>
+            <dd>@detail.Data.Transaction.Date.ToString("yyyy-MM-dd HH:mm")</dd>
+            <dt>Amount</dt>
+            <dd>@detail.Data.Transaction.Amount.ToString("N2")</dd>
+            <dt>Balance</dt>
+            <dd>@detail.Data.Transaction.BalanceAfterTransaction.ToString("N2")</dd>
+            <dt>Card No</dt>
+            <dd>@detail.Data.Transaction.CardNo</dd>
+            <dt>Full Name</dt>
+            <dd>@detail.Data.Transaction.FullName</dd>
+            <dt>Mobile No</dt>
+            <dd>@detail.Data.Transaction.MobileNo</dd>
+        </dl>
+    </section>
+}
+
+<section class="tool-panel">
+    <h2>Transaction List</h2>
+    @if (transactions is null)
+    {
+        <p>Enter a card number.</p>
+    }
+    else if (!transactions.IsSuccess)
+    {
+        <div class="alert alert-danger">@transactions.Message</div>
+    }
+    else if (transactions.Data?.Transactions.Count > 0)
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Transaction No</th>
+                        <th>Date</th>
+                        <th class="text-end">Amount</th>
+                        <th class="text-end">Balance</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var transaction in transactions.Data.Transactions)
+                    {
+                        <tr>
+                            <td>@transaction.TransactionNo</td>
+                            <td>@transaction.Date.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td class="text-end">@transaction.Amount.ToString("N2")</td>
+                            <td class="text-end">@transaction.BalanceAfterTransaction.ToString("N2")</td>
+                            <td class="table-actions">
+                                <button class="btn btn-outline-secondary btn-sm" @onclick="() => LoadTransaction(transaction.TransactionId)">View</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <p>No transactions found.</p>
+    }
+</section>
+
+@code {
+    private readonly TransactionListRequestModel search = new();
+    private Result<TransactionListResponseModel>? transactions;
+    private Result<TransactionDetailResponseModel>? detail;
+    private string? message;
+    private bool isBusy;
+    private bool isSuccessMessage;
+
+    private async Task LoadTransactions()
+    {
+        await Run(async () =>
+        {
+            transactions = await ApiService.GetTransactions(search);
+            detail = null;
+            SetMessage(transactions.Message, transactions.IsSuccess);
+        });
+    }
+
+    private async Task LoadTransaction(int transactionId)
+    {
+        await Run(async () =>
+        {
+            detail = await ApiService.GetTransaction(transactionId);
+            SetMessage(detail.Message, detail.IsSuccess);
+        });
+    }
+
+    private async Task Run(Func<Task> action)
+    {
+        isBusy = true;
+        try
+        {
+            await action();
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void SetMessage(string value, bool isSuccess)
+    {
+        message = value;
+        isSuccessMessage = isSuccess;
+    }
+}

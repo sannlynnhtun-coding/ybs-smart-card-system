@@ -1,0 +1,93 @@
+@page "/topup"
+@inject ApiService ApiService
+
+<PageTitle>Topup</PageTitle>
+
+<h1>Topup</h1>
+
+@if (!string.IsNullOrWhiteSpace(message))
+{
+    <div class="alert @(isSuccessMessage ? "alert-success" : "alert-danger")">@message</div>
+}
+
+<section class="tool-panel">
+    <div class="form-grid">
+        <label>
+            Card No
+            <input class="form-control" @bind="request.CardNo" />
+        </label>
+        <label>
+            Package
+            <select class="form-select" @bind="request.PackageId">
+                <option value="0">Select package</option>
+                @foreach (var package in packages)
+                {
+                    <option value="@package.PackageId">@package.PackageName - @package.Amount.ToString("N2")</option>
+                }
+            </select>
+        </label>
+    </div>
+    <button class="btn btn-success mt-3" @onclick="SaveTopup" disabled="@isBusy">Topup</button>
+</section>
+
+@if (topup?.Data is not null)
+{
+    <section class="tool-panel">
+        <h2>Topup Result</h2>
+        <dl class="detail-grid">
+            <dt>Card No</dt>
+            <dd>@topup.Data.CardNo</dd>
+            <dt>Package</dt>
+            <dd>@topup.Data.PackageName</dd>
+            <dt>Amount</dt>
+            <dd>@topup.Data.Amount.ToString("N2")</dd>
+            <dt>New Balance</dt>
+            <dd>@topup.Data.NewBalance.ToString("N2")</dd>
+        </dl>
+    </section>
+}
+
+@code {
+    private readonly TopupRequestModel request = new();
+    private readonly List<PackageListItemResponseModel> packages = new();
+    private Result<TopupResponseModel>? topup;
+    private string? message;
+    private bool isBusy;
+    private bool isSuccessMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await ApiService.GetPackages();
+        if (result.IsSuccess && result.Data is not null)
+        {
+            packages.AddRange(result.Data.Packages);
+        }
+
+        SetMessage(result.Message, result.IsSuccess);
+    }
+
+    private async Task SaveTopup()
+    {
+        isBusy = true;
+        try
+        {
+            topup = await ApiService.Topup(request);
+            SetMessage(topup.Message, topup.IsSuccess);
+            if (topup.IsSuccess)
+            {
+                request.CardNo = string.Empty;
+                request.PackageId = 0;
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void SetMessage(string value, bool isSuccess)
+    {
+        message = value;
+        isSuccessMessage = isSuccess;
+    }
+}

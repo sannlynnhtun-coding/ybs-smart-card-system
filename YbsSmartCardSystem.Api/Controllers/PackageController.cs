@@ -16,23 +16,37 @@ public class PackageController : BaseController
     }
 
     [HttpGet]
-    public IActionResult PackageList()
+    public IActionResult PackageList([FromQuery] PackageListRequestModel request)
     {
-        var result = _packageService.GetList();
+        var result = _packageService.GetList(request);
+        return Execute(result);
+    }
+
+    [HttpGet("{packageId}")]
+    public IActionResult PackageDetail([FromRoute] PackageDetailRequestModel request)
+    {
+        var result = _packageService.GetById(request);
         return Execute(result);
     }
 
     [HttpPost]
-    public IActionResult CreatePackage([FromBody] PackageRequestModel request)
+    public IActionResult CreatePackage([FromBody] PackageCreateRequestModel request)
     {
         var result = _packageService.Create(request);
         return Execute(result);
     }
 
     [HttpPut("{packageId}")]
-    public IActionResult UpdatePackage(int packageId, [FromBody] PackageRequestModel request)
+    public IActionResult UpdatePackage(int packageId, [FromBody] PackageUpdateRequestModel request)
     {
         var result = _packageService.Update(packageId, request);
+        return Execute(result);
+    }
+
+    [HttpDelete("{packageId}")]
+    public IActionResult DeletePackage([FromRoute] PackageDeleteRequestModel request)
+    {
+        var result = _packageService.Delete(request);
         return Execute(result);
     }
 }
