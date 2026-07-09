@@ -18,7 +18,7 @@ public class CardService
         try
         {
             int pageNo = request.PageNo <= 0 ? 1 : request.PageNo;
-            int pageSize = request.PageSize <= 0 ? 10 : request.PageSize;
+            int pageSize = Math.Min(request.PageSize <= 0 ? 10 : request.PageSize, 100);
 
             var query = _db.TblCards
                 .AsNoTracking()
@@ -42,6 +42,7 @@ public class CardService
                 query = query.Where(x => x.FullName.Contains(name));
             }
 
+            int totalCount = query.Count();
             var cards = query
                 .OrderByDescending(x => x.CardId)
                 .Skip((pageNo - 1) * pageSize)
@@ -54,6 +55,10 @@ public class CardService
                 Message = "Cards retrieved successfully.",
                 Data = new CardListResponseModel
                 {
+                    PageNo = pageNo,
+                    PageSize = pageSize,
+                    TotalCount = totalCount,
+                    PageCount = (int)Math.Ceiling(totalCount / (double)pageSize),
                     Cards = cards.Select(c => new CardListItemResponseModel
                     {
                         CardId = c.CardId,

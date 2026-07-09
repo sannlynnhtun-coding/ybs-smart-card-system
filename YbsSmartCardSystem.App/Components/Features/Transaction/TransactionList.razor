@@ -16,8 +16,12 @@
             Card No
             <input class="form-control" @bind="search.CardNo" />
         </label>
+        <label>
+            Page Size
+            <input class="form-control" type="number" min="1" @bind="search.PageSize" />
+        </label>
     </div>
-    <button class="btn btn-primary mt-3" @onclick="LoadTransactions" disabled="@isBusy">Search</button>
+    <button class="btn btn-primary mt-3" @onclick="() => LoadTransactions()" disabled="@isBusy">Search</button>
 </section>
 
 @if (detail?.Data?.Transaction is not null)
@@ -82,6 +86,13 @@
                 </tbody>
             </table>
         </div>
+        <div class="pager-row">
+            <span>Page @transactions.Data.PageNo of @Math.Max(transactions.Data.PageCount, 1) (@transactions.Data.TotalCount total)</span>
+            <div class="button-row">
+                <button class="btn btn-outline-secondary btn-sm" @onclick="PreviousPage" disabled="@(isBusy || transactions.Data.PageNo <= 1)">Previous</button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="NextPage" disabled="@(isBusy || transactions.Data.PageNo >= transactions.Data.PageCount)">Next</button>
+            </div>
+        </div>
     }
     else
     {
@@ -97,14 +108,31 @@
     private bool isBusy;
     private bool isSuccessMessage;
 
-    private async Task LoadTransactions()
+    private async Task LoadTransactions(bool resetPage = true)
     {
         await Run(async () =>
         {
+            if (resetPage)
+            {
+                search.PageNo = 1;
+            }
+
             transactions = await ApiService.GetTransactions(search);
             detail = null;
             SetMessage(transactions.Message, transactions.IsSuccess);
         });
+    }
+
+    private async Task PreviousPage()
+    {
+        search.PageNo--;
+        await LoadTransactions(false);
+    }
+
+    private async Task NextPage()
+    {
+        search.PageNo++;
+        await LoadTransactions(false);
     }
 
     private async Task LoadTransaction(int transactionId)

@@ -49,6 +49,14 @@
 
 <section class="tool-panel">
     <h2>Package List</h2>
+    <div class="form-grid compact-form">
+        <label>
+            Page Size
+            <input class="form-control" type="number" min="1" @bind="packageSearch.PageSize" />
+        </label>
+    </div>
+    <button class="btn btn-primary mt-3" @onclick="() => LoadPackages(true)" disabled="@isBusy">Apply</button>
+
     @if (packages is null)
     {
         <p>Loading...</p>
@@ -84,6 +92,13 @@
                 </tbody>
             </table>
         </div>
+        <div class="pager-row">
+            <span>Page @packages.Data.PageNo of @Math.Max(packages.Data.PageCount, 1) (@packages.Data.TotalCount total)</span>
+            <div class="button-row">
+                <button class="btn btn-outline-secondary btn-sm" @onclick="PreviousPage" disabled="@(isBusy || packages.Data.PageNo <= 1)">Previous</button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="NextPage" disabled="@(isBusy || packages.Data.PageNo >= packages.Data.PageCount)">Next</button>
+            </div>
+        </div>
     }
     else
     {
@@ -93,6 +108,7 @@
 
 @code {
     private PackageCreateRequestModel packageForm = new();
+    private readonly PackageListRequestModel packageSearch = new() { PageNo = 1, PageSize = 10 };
     private Result<PackageListResponseModel>? packages;
     private Result<PackageDetailResponseModel>? selectedPackage;
     private int? editPackageId;
@@ -105,13 +121,30 @@
         await LoadPackages();
     }
 
-    private async Task LoadPackages()
+    private async Task LoadPackages(bool resetPage = false)
     {
         await Run(async () =>
         {
-            packages = await ApiService.GetPackages();
+            if (resetPage)
+            {
+                packageSearch.PageNo = 1;
+            }
+
+            packages = await ApiService.GetPackages(packageSearch);
             SetMessage(packages.Message, packages.IsSuccess);
         });
+    }
+
+    private async Task PreviousPage()
+    {
+        packageSearch.PageNo--;
+        await LoadPackages();
+    }
+
+    private async Task NextPage()
+    {
+        packageSearch.PageNo++;
+        await LoadPackages();
     }
 
     private async Task LoadPackage(int packageId)
@@ -144,7 +177,8 @@
                 if (result.IsSuccess)
                 {
                     ClearForm();
-                    packages = await ApiService.GetPackages();
+                    packageSearch.PageNo = 1;
+                    packages = await ApiService.GetPackages(packageSearch);
                 }
             }
             else
@@ -159,7 +193,7 @@
                 if (result.IsSuccess)
                 {
                     ClearForm();
-                    packages = await ApiService.GetPackages();
+                    packages = await ApiService.GetPackages(packageSearch);
                 }
             }
         });
@@ -181,7 +215,7 @@
             {
                 ClearForm();
                 selectedPackage = null;
-                packages = await ApiService.GetPackages();
+                packages = await ApiService.GetPackages(packageSearch);
             }
         });
     }

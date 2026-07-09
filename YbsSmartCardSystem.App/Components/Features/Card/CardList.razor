@@ -31,7 +31,7 @@
                 <input class="form-control" type="number" min="1" @bind="search.PageSize" />
             </label>
         </div>
-        <button class="btn btn-primary mt-3" @onclick="LoadCards" disabled="@isBusy">Search</button>
+        <button class="btn btn-primary mt-3" @onclick="() => LoadCards()" disabled="@isBusy">Search</button>
     </section>
 
     <section class="tool-panel">
@@ -110,6 +110,13 @@
                 </tbody>
             </table>
         </div>
+        <div class="pager-row">
+            <span>Page @cards.Data.PageNo of @Math.Max(cards.Data.PageCount, 1) (@cards.Data.TotalCount total)</span>
+            <div class="button-row">
+                <button class="btn btn-outline-secondary btn-sm" @onclick="PreviousPage" disabled="@(isBusy || cards.Data.PageNo <= 1)">Previous</button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="NextPage" disabled="@(isBusy || cards.Data.PageNo >= cards.Data.PageCount)">Next</button>
+            </div>
+        </div>
     }
     else
     {
@@ -131,15 +138,31 @@
         await LoadCards();
     }
 
-    private async Task LoadCards()
+    private async Task LoadCards(bool resetPage = true)
     {
         await Run(async () =>
         {
-            search.PageNo = 1;
+            if (resetPage)
+            {
+                search.PageNo = 1;
+            }
+
             cards = await ApiService.GetCards(search);
             selectedCard = null;
             SetMessage(cards.Message, cards.IsSuccess);
         });
+    }
+
+    private async Task PreviousPage()
+    {
+        search.PageNo--;
+        await LoadCards(false);
+    }
+
+    private async Task NextPage()
+    {
+        search.PageNo++;
+        await LoadCards(false);
     }
 
     private async Task LoadCard(int cardId)

@@ -59,9 +59,15 @@ public class ApiService
         return Execute<CardCreateRequestModel, Result<CardCreateResponseModel>>(ApiEndpoints.CreateCard, HttpMethod.Post, request);
     }
 
-    public Task<Result<PackageListResponseModel>> GetPackages()
+    public Task<Result<PackageListResponseModel>> GetPackages(PackageListRequestModel request)
     {
-        return Execute<object, Result<PackageListResponseModel>>(ApiEndpoints.PackageList, HttpMethod.Get, null);
+        string url = QueryHelpers.AddQueryString(ApiEndpoints.PackageList, new Dictionary<string, string?>
+        {
+            ["pageNo"] = request.PageNo.ToString(),
+            ["pageSize"] = request.PageSize.ToString()
+        });
+
+        return Execute<PackageListRequestModel, Result<PackageListResponseModel>>(url, HttpMethod.Get, null);
     }
 
     public Task<Result<PackageDetailResponseModel>> GetPackage(int packageId)
@@ -76,6 +82,7 @@ public class ApiService
 
     public Task<Result<PackageUpdateResponseModel>> UpdatePackage(int packageId, PackageUpdateRequestModel request)
     {
+        request.PackageId = packageId;
         return Execute<PackageUpdateRequestModel, Result<PackageUpdateResponseModel>>($"api/Package/{packageId}", HttpMethod.Put, request);
     }
 
@@ -98,7 +105,9 @@ public class ApiService
     {
         string url = QueryHelpers.AddQueryString(ApiEndpoints.TransactionList, new Dictionary<string, string?>
         {
-            ["cardNo"] = request.CardNo
+            ["cardNo"] = request.CardNo,
+            ["pageNo"] = request.PageNo.ToString(),
+            ["pageSize"] = request.PageSize.ToString()
         });
 
         return Execute<TransactionListRequestModel, Result<TransactionListResponseModel>>(url, HttpMethod.Get, null);

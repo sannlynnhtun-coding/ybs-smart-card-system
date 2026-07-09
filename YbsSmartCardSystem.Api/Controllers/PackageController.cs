@@ -39,7 +39,8 @@ public class PackageController : BaseController
     [HttpPut("{packageId}")]
     public IActionResult UpdatePackage(int packageId, [FromBody] PackageUpdateRequestModel request)
     {
-        var result = _packageService.Update(packageId, request);
+        request.PackageId = packageId;
+        var result = _packageService.Update(request);
         return Execute(result);
     }
 

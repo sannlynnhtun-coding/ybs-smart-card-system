@@ -102,6 +102,20 @@ h2 {
     justify-content: flex-end;
 }
 
+.pager-row {
+    align-items: center;
+    border-top: 1px solid #e5e9ed;
+    color: #5c6670;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    padding-top: 0.75rem;
+}
+
+.compact-form {
+    max-width: 220px;
+}
+
 .detail-grid {
     display: grid;
     grid-template-columns: max-content 1fr;

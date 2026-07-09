@@ -17,10 +17,18 @@ public class PackageService
     {
         try
         {
-            var packages = _db.TblPackages
+            int pageNo = request.PageNo <= 0 ? 1 : request.PageNo;
+            int pageSize = Math.Min(request.PageSize <= 0 ? 10 : request.PageSize, 100);
+
+            var query = _db.TblPackages
                 .AsNoTracking()
-                .Where(x => x.IsDelete == false)
+                .Where(x => x.IsDelete == false);
+
+            int totalCount = query.Count();
+            var packages = query
                 .OrderByDescending(x => x.PackageId)
+                .Skip((pageNo - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new PackageListItemResponseModel
                 {
                     PackageId = x.PackageId,
@@ -35,6 +43,10 @@ public class PackageService
                 Message = "Packages retrieved successfully.",
                 Data = new PackageListResponseModel
                 {
+                    PageNo = pageNo,
+                    PageSize = pageSize,
+                    TotalCount = totalCount,
+                    PageCount = (int)Math.Ceiling(totalCount / (double)pageSize),
                     Packages = packages
                 }
             };
@@ -134,7 +146,7 @@ public class PackageService
         }
     }
 
-    public Result<PackageUpdateResponseModel> Update(int packageId, PackageUpdateRequestModel request)
+    public Result<PackageUpdateResponseModel> Update(PackageUpdateRequestModel request)
     {
         try
         {
@@ -149,7 +161,7 @@ public class PackageService
                 return Fail<PackageUpdateResponseModel>("Amount must be greater than 0.");
             }
 
-            var package = _db.TblPackages.FirstOrDefault(x => x.PackageId == packageId && x.IsDelete == false);
+            var package = _db.TblPackages.FirstOrDefault(x => x.PackageId == request.PackageId && x.IsDelete == false);
             if (package is null)
             {
                 return Fail<PackageUpdateResponseModel>("Package not found.");

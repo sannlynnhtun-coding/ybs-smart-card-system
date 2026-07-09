@@ -57,7 +57,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var result = await ApiService.GetPackages();
+        var result = await ApiService.GetPackages(new PackageListRequestModel { PageNo = 1, PageSize = 100 });
         if (result.IsSuccess && result.Data is not null)
         {
             packages.AddRange(result.Data.Packages);

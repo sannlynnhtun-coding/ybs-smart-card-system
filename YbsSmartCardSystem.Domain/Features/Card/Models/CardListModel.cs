@@ -16,6 +16,14 @@ public class CardListRequestModel
 public class CardListResponseModel
 {
     public List<CardListItemResponseModel> Cards { get; set; } = new List<CardListItemResponseModel>();
+
+    public int PageNo { get; set; }
+
+    public int PageSize { get; set; }
+
+    public int TotalCount { get; set; }
+
+    public int PageCount { get; set; }
 }
 
 public class CardListItemResponseModel

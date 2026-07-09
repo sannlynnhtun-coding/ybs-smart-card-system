@@ -17,6 +17,8 @@ public class TransactionService
     {
         try
         {
+            int pageNo = request.PageNo <= 0 ? 1 : request.PageNo;
+            int pageSize = Math.Min(request.PageSize <= 0 ? 10 : request.PageSize, 100);
             string cardNo = request.CardNo.Trim();
             if (string.IsNullOrWhiteSpace(cardNo))
             {
@@ -39,6 +41,7 @@ public class TransactionService
                 .ThenBy(x => x.TransactionId)
                 .ToList();
 
+            int totalCount = transactions.Count;
             decimal balance = 0;
             var items = transactions.Select(x =>
             {
@@ -51,7 +54,12 @@ public class TransactionService
                     Amount = x.Amount,
                     BalanceAfterTransaction = balance
                 };
-            }).ToList();
+            })
+                .OrderByDescending(x => x.Date)
+                .ThenByDescending(x => x.TransactionId)
+                .Skip((pageNo - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
 
             return new Result<TransactionListResponseModel>
             {
@@ -59,6 +67,10 @@ public class TransactionService
                 Message = "Transactions retrieved successfully.",
                 Data = new TransactionListResponseModel
                 {
+                    PageNo = pageNo,
+                    PageSize = pageSize,
+                    TotalCount = totalCount,
+                    PageCount = (int)Math.Ceiling(totalCount / (double)pageSize),
                     Transactions = items
                 }
             };
